@@ -1,8 +1,11 @@
+
+#include <MPU6050.h>
+
+#include <I2Cdev.h>
+
 // I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
-#include "I2Cdev.h"
-#include "MPU6050.h"
-#include "Math.h"
+#include "math.h"
 
 // Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
 // is used in I2Cdev.h
@@ -38,7 +41,11 @@ int16_t gx, gy, gz;
 #define LED_PIN_LAX 12
 #define LED_PIN_AY 11
 #define LED_PIN_LAY 10*/
-
+    int i=0;
+    
+    double angoloGx;
+    double angoloGy;
+    double angoloGz;
 void setup() {
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
@@ -75,7 +82,10 @@ void setup() {
 
     // configure Arduino LED for
     Serial.print("       ax     |ay     |az     |gx     |gy     |gz     |\n");
-    int i=0;
+    accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+    angoloGx += gx/(131);
+    angoloGy += gy/(131);
+    angoloGz += gz/(131);
 }
 
 void loop() {
@@ -88,22 +98,33 @@ void loop() {
 
     #ifdef OUTPUT_READABLE_ACCELGYRO
         // display tab-separated accel/gyro x/y/z value
+        /*--------------------------------------------------------------- lettura ed elaborazione dati accelerometro ---------*/
+        double angoloAx=atan((ax)/(sqrt(pow(ay,2)+pow(az,2))));
+        double angoloAy=atan((ay)/(sqrt(pow(ax,2)+pow(az,2))));
+        double angoloAz=atan((az)/(sqrt(pow(ax,2)+pow(ay,2))));
         
-        double angolox=atan((ax)/(sqrt(pow(ay,2)+pow(az,2))));
-        double angoloy=atan((ay)/(sqrt(pow(ax,2)+pow(az,2))));
-        double angoloz=atan((az)/(sqrt(pow(ax,2)+pow(ay,2))));
-        //double angoloz=atan(sqrt(pow(ay,2)+pow(ax,2))/(az));
-        angolox=angolox*(180/M_PI);
-        angoloy=angoloy*(180/M_PI);
-        angoloz=angoloz*(180/M_PI);
-        /*Serial.print("a/g:\t");
-        Serial.print(angolox); Serial.print("\t");
-        Serial.print(angoloy); Serial.print("\t");
-        Serial.print(angoloz); Serial.print("\n");
+        /*--------------------------------------------------------------- conversione da radianti a gradi --------------------*/
+        angoloAx=angoloAx*(180/M_PI);
+        angoloAy=angoloAy*(180/M_PI);
+        angoloAz=angoloAz*(180/M_PI);
+        
+        /*--------------------------------------------------------------- elaborazione dati giroscopio -----------------------*/
+        if(i==1050)
+        {
+          angoloGx += gx/(131);
+          angoloGy += gy/(131);
+          angoloGz += gz/(131);
+          i=0;
+        }
+        i++;
+        
         Serial.print("a/g:\t");
-        Serial.print(ax); Serial.print("\t");
-        Serial.print(ay); Serial.print("\t");
-        Serial.print(az); Serial.print("\n");
+        Serial.print(angoloAx); Serial.print("\t");
+        Serial.print(angoloAy); Serial.print("\t");
+        Serial.print(angoloAz); Serial.print("\t");
+        Serial.print(angoloGz); Serial.print("\t");
+        Serial.print(angoloGz); Serial.print("\t");
+        Serial.print(angoloGz); Serial.print("\n");
         /*Serial.print(gx); Serial.print("\t");
         Serial.print(gy); Serial.print("\t");
         Serial.println(gz);*/
