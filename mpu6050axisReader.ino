@@ -1,4 +1,3 @@
-
 #include <MPU6050.h>
 
 #include <I2Cdev.h>
@@ -41,11 +40,16 @@ int16_t gx, gy, gz;
 #define LED_PIN_LAX 12
 #define LED_PIN_AY 11
 #define LED_PIN_LAY 10*/
+/*-------------------------------------------------Variabili--------------------------*/
     int i=0;
-    
-    double angoloGx;
-    double angoloGy;
-    double angoloGz;
+    double angoloGx=0;
+    double angoloGy=0;
+    double angoloGz=0;
+    double angoloAx=0;
+    double angoloAy=0;
+    double angoloAz=0;
+/*------------------------------------------------------------------------------------*/
+
 void setup() {
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
@@ -82,34 +86,48 @@ void setup() {
 
     // configure Arduino LED for
     Serial.print("       ax     |ay     |az     |gx     |gy     |gz     |\n");
+    /*-------------------------------------------------------------------------- imposto l'angolo inziale per il giroscopio -----------------*/
     accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-    angoloGx += gx/(131);
-    angoloGy += gy/(131);
-    angoloGz += gz/(131);
+    
+    angoloAx=atan((ax)/(sqrt(pow(ay,2)+pow(az,2))));
+    angoloAy=atan((ay)/(sqrt(pow(ax,2)+pow(az,2))));
+    angoloAz=atan((az)/(sqrt(pow(ax,2)+pow(ay,2))));
+    
+    angoloAx=angoloAx*(180/M_PI);
+    angoloAy=angoloAy*(180/M_PI);
+    angoloAz=angoloAz*(180/M_PI);
+    
+    angoloGx = angoloAx;
+    angoloGy = angoloAy;
+    angoloGz = angoloAz; 
+    
+    Serial.print(angoloAx); Serial.print("\t");
+    Serial.print(angoloAy); Serial.print("\t");
+    Serial.print(angoloAz); Serial.print("\t");
+      
+    Serial.print(angoloGx); Serial.print("\t");
+    Serial.print(angoloGy); Serial.print("\t");
+    Serial.print(angoloGz); Serial.print("\n");
+    /*---------------------------------------------------------------------------------------------------------------------------------------*/
 }
 
 void loop() {
     // read raw accel/gyro measurements from device
     accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
-    // these methods (and a few others) are also available
-    //accelgyro.getAcceleration(&ax, &ay, &az);
-    //accelgyro.getRotation(&gx, &gy, &gz);
-
-    #ifdef OUTPUT_READABLE_ACCELGYRO
-        // display tab-separated accel/gyro x/y/z value
-        /*--------------------------------------------------------------- lettura ed elaborazione dati accelerometro ---------*/
-        double angoloAx=atan((ax)/(sqrt(pow(ay,2)+pow(az,2))));
-        double angoloAy=atan((ay)/(sqrt(pow(ax,2)+pow(az,2))));
-        double angoloAz=atan((az)/(sqrt(pow(ax,2)+pow(ay,2))));
+        // 
+        /*------------------------------------------------------------------- lettura ed elaborazione dati accelerometro -------------------*/
+        angoloAx=atan((ax)/(sqrt(pow(ay,2)+pow(az,2))));
+        angoloAy=atan((ay)/(sqrt(pow(ax,2)+pow(az,2))));
+        angoloAz=atan((az)/(sqrt(pow(ax,2)+pow(ay,2))));
         
-        /*--------------------------------------------------------------- conversione da radianti a gradi --------------------*/
+        /*------------------------------------------------------------------- conversione da radianti a gradi ------------------------------*/
         angoloAx=angoloAx*(180/M_PI);
         angoloAy=angoloAy*(180/M_PI);
         angoloAz=angoloAz*(180/M_PI);
         
-        /*--------------------------------------------------------------- elaborazione dati giroscopio -----------------------*/
-        if(i==1050)
+        /*------------------------------------------------------------------- elaborazione dati giroscopio ---------------------------------*/
+        if(i==1)
         {
           angoloGx += gx/(131);
           angoloGy += gy/(131);
@@ -118,17 +136,18 @@ void loop() {
         }
         i++;
         
+        /*------------------------------------------------------------------- print dei risultati ------------------------------------------*/
         Serial.print("a/g:\t");
+        
         Serial.print(angoloAx); Serial.print("\t");
         Serial.print(angoloAy); Serial.print("\t");
         Serial.print(angoloAz); Serial.print("\t");
-        Serial.print(angoloGz); Serial.print("\t");
-        Serial.print(angoloGz); Serial.print("\t");
-        Serial.print(angoloGz); Serial.print("\n");
-        /*Serial.print(gx); Serial.print("\t");
-        Serial.print(gy); Serial.print("\t");
-        Serial.println(gz);*/
         
+        Serial.print(angoloGx); Serial.print("\t");
+        Serial.print(angoloGy); Serial.print("\t");
+        Serial.print(angoloGz); Serial.print("\n");
+        
+        /*------------------------------------------------------------------ if per circuito di prova --------------------------------------*/
         if(ax<-4000)
         {
           digitalWrite(10,HIGH);
@@ -157,18 +176,24 @@ void loop() {
                     }
               }
         }
-    #endif
+    
 
-    #ifdef OUTPUT_BINARY_ACCELGYRO
+   /* #ifdef OUTPUT_BINARY_ACCELGYRO
         Serial.write((uint8_t)(ax >> 8)); Serial.write((uint8_t)(ax & 0xFF));
         Serial.write((uint8_t)(ay >> 8)); Serial.write((uint8_t)(ay & 0xFF));
         Serial.write((uint8_t)(az >> 8)); Serial.write((uint8_t)(az & 0xFF));
         Serial.write((uint8_t)(gx >> 8)); Serial.write((uint8_t)(gx & 0xFF));
         Serial.write((uint8_t)(gy >> 8)); Serial.write((uint8_t)(gy & 0xFF));
         Serial.write((uint8_t)(gz >> 8)); Serial.write((uint8_t)(gz & 0xFF));
-    #endif
+    #endif*/
 
     // blink LED to indicate activity
     /*blinkState = !blinkState;
     digitalWrite(LED_PIN, blinkState);*/
+    
+    
+    // these methods (and a few others) are also available
+    //accelgyro.getAcceleration(&ax, &ay, &az);
+    //accelgyro.getRotation(&gx, &gy, &gz);
+
 }
