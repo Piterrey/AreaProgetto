@@ -48,6 +48,9 @@ int16_t gx, gy, gz;
     double angoloAx=0;
     double angoloAy=0;
     double angoloAz=0;
+    double lastAx=0;
+    double lastAy=0;
+    double lastAz=0;
 /*------------------------------------------------------------------------------------*/
 
 void setup() {
@@ -129,9 +132,20 @@ void loop() {
         /*------------------------------------------------------------------- elaborazione dati giroscopio ---------------------------------*/
         if(i==1050)
         {
-          angoloGx += gx/(131);
-          angoloGy += gy/(131);
-          angoloGz += gz/(131);
+          angoloGx = lastAx + gx/(131);
+          angoloGy = lastAy + gy/(131);
+          angoloGz = lastAz + gz/(131);
+          
+          lastAx = angoloAx ;
+          lastAy = angoloAy ;
+          lastAz = angoloAz ;
+          /*------------------------------TODO-------------------------------*/
+          
+            /*   Inserire al posto di angoloAx, angoloAy, angoloAz, */ 
+            /*   gli angoli filtrati per una maggiore stabilità     */
+            
+          /*-----------------------------------------------------------------*/
+          
           i=0;
         }
         i++;
