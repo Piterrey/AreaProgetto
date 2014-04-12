@@ -127,7 +127,7 @@ void loop() {
         angoloAz=angoloAz*(180/M_PI);
         
         /*------------------------------------------------------------------- elaborazione dati giroscopio ---------------------------------*/
-        if(i==1)
+        if(i==1050)
         {
           angoloGx += gx/(131);
           angoloGy += gy/(131);
