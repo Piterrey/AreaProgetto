@@ -1,10 +1,17 @@
+#include <I2Cdev.h>
+
+
 #include <MPU6050.h>
 
-#include <I2Cdev.h>
+
+//#include <MPU6050.h>
+
+//#include <I2Cdev.h>
 
 // I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
 #include "math.h"
+#include "Time.h"
 
 // Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
 // is used in I2Cdev.h
@@ -16,11 +23,9 @@
 // specific I2C addresses may be passed as a parameter here
 // AD0 low = 0x68 (default for InvenSense evaluation board)
 // AD0 high = 0x69
-MPU6050 accelgyro;
+
 //MPU6050 accelgyro(0x69); // <-- use for AD0 high
 
-int16_t ax, ay, az;
-int16_t gx, gy, gz;
 
 
 
@@ -41,6 +46,10 @@ int16_t gx, gy, gz;
 #define LED_PIN_AY 11
 #define LED_PIN_LAY 10*/
 /*-------------------------------------------------Variabili--------------------------*/
+    MPU6050 accelgyro;
+    int16_t ax, ay, az;
+    int16_t gx, gy, gz;
+    TimeElemnts nowTime;
     int i=0;
     double angoloGx=0;
     double angoloGy=0;
@@ -130,7 +139,7 @@ void loop() {
         angoloAz=angoloAz*(180/M_PI);
         
         /*------------------------------------------------------------------- elaborazione dati giroscopio ---------------------------------*/
-        if(i==1050)
+        if(i==1)
         {
           angoloGx = lastAx + gx/(131);
           angoloGy = lastAy + gy/(131);
@@ -159,7 +168,11 @@ void loop() {
         
         Serial.print(angoloGx); Serial.print("\t");
         Serial.print(angoloGy); Serial.print("\t");
-        Serial.print(angoloGz); Serial.print("\n");
+        Serial.print(angoloGz); Serial.print("\t");
+        
+        Serial.print(nowTime.second); Serial.print("\t");
+        
+        Serial.print(i);Serial.print("\n");
         
         /*------------------------------------------------------------------ if per circuito di prova --------------------------------------*/
         if(ax<-4000)
