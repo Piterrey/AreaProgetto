@@ -1,8 +1,17 @@
-#include <I2Cdev.h>
+#include <DateTime.h>
+/*------------------------------------------Importante------------------------------*/
+  /*       aggiunta alla libreria DateTime.cpp: #include <Arduino.h>   */
+/*----------------------------------------------------------------------------------*/
+  
+#include <DateTimeStrings.h>
 
+#include <I2Cdev.h>
 
 #include <MPU6050.h>
 
+#include "math.h"
+
+#include "Wire.h"
 
 //#include <MPU6050.h>
 
@@ -10,13 +19,12 @@
 
 // I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
-#include "math.h"
-#include "Time.h"
+
 
 // Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
 // is used in I2Cdev.h
 
-#include "Wire.h"
+
 
 
 // class default I2C address is 0x68
@@ -49,17 +57,18 @@
     MPU6050 accelgyro;
     int16_t ax, ay, az;
     int16_t gx, gy, gz;
-    TimeElemnts nowTime;
     int i=0;
     double angoloGx=0;
-    double angoloGy=0;
-    double angoloGz=0;
     double angoloAx=0;
-    double angoloAy=0;
-    double angoloAz=0;
-    double lastAx=0;
-    double lastAy=0;
-    double lastAz=0;
+    time_t time=0;
+    unsigned long nowTime=0;
+    unsigned long oldTime=0;
+    double fiAngx=0;
+    double setPoint;
+    double kP, kI, kD, P, I, D;
+    double error, prevError, sumError, difError;
+    double samplingT;
+
 /*------------------------------------------------------------------------------------*/
 
 void setup() {
@@ -86,6 +95,7 @@ void setup() {
     pinMode(10, OUTPUT);
     pinMode(11, OUTPUT);
     pinMode(12, OUTPUT);
+    
     // use the code below to change accel/gyro offset values
     /*
     Serial.println("Updating internal sensor offsets...");
@@ -97,30 +107,24 @@ void setup() {
     */
 
     // configure Arduino LED for
-    Serial.print("       ax     |ay     |az     |gx     |gy     |gz     |\n");
+    Serial.print("       ax     |gx     |sec    |Filtered angle  |\n");
     /*-------------------------------------------------------------------------- imposto l'angolo inziale per il giroscopio -----------------*/
     accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
     
     angoloAx=atan((ax)/(sqrt(pow(ay,2)+pow(az,2))));
-    angoloAy=atan((ay)/(sqrt(pow(ax,2)+pow(az,2))));
-    angoloAz=atan((az)/(sqrt(pow(ax,2)+pow(ay,2))));
     
     angoloAx=angoloAx*(180/M_PI);
-    angoloAy=angoloAy*(180/M_PI);
-    angoloAz=angoloAz*(180/M_PI);
     
     angoloGx = angoloAx;
-    angoloGy = angoloAy;
-    angoloGz = angoloAz; 
+    
+    fiAngx= angoloAx;
     
     Serial.print(angoloAx); Serial.print("\t");
-    Serial.print(angoloAy); Serial.print("\t");
-    Serial.print(angoloAz); Serial.print("\t");
       
     Serial.print(angoloGx); Serial.print("\t");
-    Serial.print(angoloGy); Serial.print("\t");
-    Serial.print(angoloGz); Serial.print("\n");
-    /*---------------------------------------------------------------------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------- setto l'ora a zero --------------------------------------------*/
+    
+    DateTime.sync(time);
 }
 
 void loop() {
@@ -130,49 +134,54 @@ void loop() {
         // 
         /*------------------------------------------------------------------- lettura ed elaborazione dati accelerometro -------------------*/
         angoloAx=atan((ax)/(sqrt(pow(ay,2)+pow(az,2))));
-        angoloAy=atan((ay)/(sqrt(pow(ax,2)+pow(az,2))));
-        angoloAz=atan((az)/(sqrt(pow(ax,2)+pow(ay,2))));
         
         /*------------------------------------------------------------------- conversione da radianti a gradi ------------------------------*/
         angoloAx=angoloAx*(180/M_PI);
-        angoloAy=angoloAy*(180/M_PI);
-        angoloAz=angoloAz*(180/M_PI);
+        
+        /*------------------------------------------------------------------- salvo i secondi correnti in una variabile---------------------*/
+        nowTime = DateTime.now(); 
         
         /*------------------------------------------------------------------- elaborazione dati giroscopio ---------------------------------*/
-        if(i==1)
-        {
-          angoloGx = lastAx + gx/(131);
-          angoloGy = lastAy + gy/(131);
-          angoloGz = lastAz + gz/(131);
+        
+          angoloGx = fiAngx+(gx/(131)*(1/25));
           
-          lastAx = angoloAx ;
-          lastAy = angoloAy ;
-          lastAz = angoloAz ;
-          /*------------------------------TODO-------------------------------*/
+          oldTime=nowTime;
           
-            /*   Inserire al posto di angoloAx, angoloAy, angoloAz, */ 
-            /*   gli angoli filtrati per una maggiore stabilità     */
-            
-          /*-----------------------------------------------------------------*/
-          
-          i=0;
-        }
-        i++;
+          /*------- risetto i secondi a 0 per non andare in overflow --------*/
+          if(nowTime>=60)
+          {
+            DateTime.sync(time);
+          }
+        /*------------------------------------------------------------------- filtro complementare -----------------------------------------*/
+        
+        fiAngx = (0.75)*(angoloGx)+(0.25)*(angoloAx);
         
         /*------------------------------------------------------------------- print dei risultati ------------------------------------------*/
         Serial.print("a/g:\t");
         
         Serial.print(angoloAx); Serial.print("\t");
-        Serial.print(angoloAy); Serial.print("\t");
-        Serial.print(angoloAz); Serial.print("\t");
         
         Serial.print(angoloGx); Serial.print("\t");
-        Serial.print(angoloGy); Serial.print("\t");
-        Serial.print(angoloGz); Serial.print("\t");
         
-        Serial.print(nowTime.second); Serial.print("\t");
+        Serial.print(nowTime); Serial.print("\t");
         
-        Serial.print(i);Serial.print("\n");
+        Serial.print(fiAngx); Serial.print("\n");
+        
+        /*------------------------------------------------------------------ Controllo PID -------------------------------------------------*/
+        
+        //proportional control
+        error = filteredXAngle - setPoint; //because of our setPoint matches with 0 degrees, we can just use the filteredXAngle as our error
+        P = kp * error;
+    
+        //integral control
+        sumError = sumError + (error * samplingT);
+        I = kI * sumError;
+    
+        //differential control
+        difError = (error - prevError)/samplingT;
+        D = kD * difError;
+    
+        prevError = error;
         
         /*------------------------------------------------------------------ if per circuito di prova --------------------------------------*/
         if(ax<-4000)
