@@ -91,11 +91,11 @@ void setup() {
     // verify connection
     Serial.println("Testing device connections...");
     Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
-    pinMode(9, OUTPUT);   
-    pinMode(10, OUTPUT);
-    pinMode(11, OUTPUT);
-    pinMode(12, OUTPUT);
-    
+    for(i=0;i<14;i++)
+    {
+      pinMode(i,OUTPUT);
+    }
+    i=0;
     // use the code below to change accel/gyro offset values
     /*
     Serial.println("Updating internal sensor offsets...");
@@ -143,7 +143,7 @@ void loop() {
         
         /*------------------------------------------------------------------- elaborazione dati giroscopio ---------------------------------*/
         
-          angoloGx = fiAngx+(gx/(131)*(1/25));
+          angoloGx = fiAngx+(gx/(131)*(1/37));
           
           oldTime=nowTime;
           
@@ -169,9 +169,9 @@ void loop() {
         
         /*------------------------------------------------------------------ Controllo PID -------------------------------------------------*/
         
-        //proportional control
-        error = filteredXAngle - setPoint; //because of our setPoint matches with 0 degrees, we can just use the filteredXAngle as our error
-        P = kp * error;
+   /*   //proportional control
+        error = fiAngx - setPoint; //because of our setPoint matches with 0 degrees, we can just use the filteredXAngle as our error
+        P = kP * error;
     
         //integral control
         sumError = sumError + (error * samplingT);
@@ -182,36 +182,25 @@ void loop() {
         D = kD * difError;
     
         prevError = error;
-        
+  */      
         /*------------------------------------------------------------------ if per circuito di prova --------------------------------------*/
-        if(ax<-4000)
-        {
-          digitalWrite(10,HIGH);
-        }
-        else{
-              if(ax>4000)
-              {
-                digitalWrite(12,HIGH);
-              }
-              else{
-                    if(ay<-4000)
-                    {
-                      digitalWrite(9,HIGH);
-                    }
-                    else{
-                          if(ay>4000)
-                          {
-                            digitalWrite(11,HIGH);
-                          }
-                          else{
-                                digitalWrite(12,LOW);
-                                digitalWrite(11,LOW);
-                                digitalWrite(10,LOW);
-                                digitalWrite(9,LOW);
-                          }
-                    }
-              }
-        }
+        //13 dir A
+        //12 dir B
+        //11 pwm B
+        //9  brake A
+        //8  brake B
+        //3  pwm A
+        
+        
+        if(nowTime >3)
+          {
+            digitalWrite(9,HIGH);
+          }
+          else
+          {
+            analogWrite(3,255);
+          }
+            
     
 
    /* #ifdef OUTPUT_BINARY_ACCELGYRO
