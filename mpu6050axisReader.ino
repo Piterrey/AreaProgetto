@@ -1,3 +1,5 @@
+#include <PID_v1.h>
+
 #include <DateTime.h>
 /*------------------------------------------Importante------------------------------*/
   /*       aggiunta alla libreria DateTime.cpp: #include <Arduino.h>   */
@@ -53,6 +55,8 @@
 #define LED_PIN_LAX 12
 #define LED_PIN_AY 11
 #define LED_PIN_LAY 10*/
+
+#define DEADZONE 5
 /*-------------------------------------------------Variabili--------------------------*/
     MPU6050 accelgyro;
     int16_t ax, ay, az;
@@ -64,11 +68,10 @@
     unsigned long nowTime=0;
     unsigned long oldTime=0;
     double fiAngx=0;
-    double setPoint;
-    double kP, kI, kD, P, I, D;
-    double error, prevError, sumError, difError;
-    double samplingT;
-
+    double kP, kI, kD;
+    PID myPID;
+    double Setpoint = 2, Input, Output;
+    double samplingTime = 1/37;
 /*------------------------------------------------------------------------------------*/
 
 void setup() {
@@ -125,6 +128,12 @@ void setup() {
     /*---------------------------------------------------------------------- setto l'ora a zero --------------------------------------------*/
     
     DateTime.sync(time);
+    
+    myPID(&Input, &Output, &Setpoint,kP,kI,kD,DIRECT);
+    myPID.SetMode(AUTOMATIC);
+    myPID.SetOutputLimits(0,255);
+    myPID.SetSamplingTime(samplingTime);
+    
 }
 
 void loop() {
@@ -143,7 +152,7 @@ void loop() {
         
         /*------------------------------------------------------------------- elaborazione dati giroscopio ---------------------------------*/
         
-          angoloGx = fiAngx+(gx/(131)*(1/37));
+          angoloGx = fiAngx+(gx/(131)*samplingTime);
           
           oldTime=nowTime;
           
@@ -169,20 +178,17 @@ void loop() {
         
         /*------------------------------------------------------------------ Controllo PID -------------------------------------------------*/
         
-   /*   //proportional control
-        error = fiAngx - setPoint; //because of our setPoint matches with 0 degrees, we can just use the filteredXAngle as our error
-        P = kP * error;
-    
-        //integral control
-        sumError = sumError + (error * samplingT);
-        I = kI * sumError;
-    
-        //differential control
-        difError = (error - prevError)/samplingT;
-        D = kD * difError;
-    
-        prevError = error;
-  */      
+        if(fiAngx>setPoint+DEADZONE | fiAngx<setPoint-DEADZONE)
+        {
+          myPID.Compute();
+          digitalWrite(9,LOW);
+          digitalWrite(8,LOW);
+        }
+        else
+        {
+          digitalWrite(9,HIGH);
+          digitalWrite(8,HIGH);
+        }
         /*------------------------------------------------------------------ if per circuito di prova --------------------------------------*/
         //13 dir A
         //12 dir B
@@ -190,35 +196,6 @@ void loop() {
         //9  brake A
         //8  brake B
         //3  pwm A
-        
-        
-        if(nowTime >3)
-          {
-            digitalWrite(9,HIGH);
-          }
-          else
-          {
-            analogWrite(3,255);
-          }
-            
     
-
-   /* #ifdef OUTPUT_BINARY_ACCELGYRO
-        Serial.write((uint8_t)(ax >> 8)); Serial.write((uint8_t)(ax & 0xFF));
-        Serial.write((uint8_t)(ay >> 8)); Serial.write((uint8_t)(ay & 0xFF));
-        Serial.write((uint8_t)(az >> 8)); Serial.write((uint8_t)(az & 0xFF));
-        Serial.write((uint8_t)(gx >> 8)); Serial.write((uint8_t)(gx & 0xFF));
-        Serial.write((uint8_t)(gy >> 8)); Serial.write((uint8_t)(gy & 0xFF));
-        Serial.write((uint8_t)(gz >> 8)); Serial.write((uint8_t)(gz & 0xFF));
-    #endif*/
-
-    // blink LED to indicate activity
-    /*blinkState = !blinkState;
-    digitalWrite(LED_PIN, blinkState);*/
-    
-    
-    // these methods (and a few others) are also available
-    //accelgyro.getAcceleration(&ax, &ay, &az);
-    //accelgyro.getRotation(&gx, &gy, &gz);
 
 }
